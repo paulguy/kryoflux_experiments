@@ -75,18 +75,18 @@ class ClockInfo:
         self.buffer_pos = self.stream.indexes[index].pos
         self.index = index
 
-    def interpret_pulse(self, reverse, last_time = 0.0, last_pulse = 0.0):
+    def interpret_pulse(self, reverse, last_time = 0.0, last_pulse = 0.0, last_clocks = 0):
         this_time = last_time
         this_pulse = last_pulse + self.stream.buffer[self.buffer_pos]
-        clocks = 0
+        clocks = last_clocks
         while this_time < this_pulse - (self.current_clock * 0.5):
             this_time += self.current_clock
             clocks += 1
-        if clocks <= 1 and self.record_format == RecordFormat.MFM:
+        if clocks < 2 and self.record_format == RecordFormat.MFM:
             # MFM can't have a pulse 1 clock long so try to string
             # multiple together assuming there was an extra pulse
             if last_time == 0.0:
-                print("WARNING: 1 clock transition in MFM fmroat.")
+                print("WARNING: 1 clock transition in MFM fmroat. @ {}".format(self.buffer_pos))
             if reverse:
                 if self.buffer_pos == 0:
                     self.buffer_pos = len(self.stream.buffer)
@@ -97,7 +97,9 @@ class ClockInfo:
                 if self.buffer_pos == len(self.stream.buffer):
                     self.buffer_pos = 0
                     self.index = -1
-            clocks = self.interpret_pulse(reverse, this_time, this_pulse)
+            clocks = self.interpret_pulse(reverse, this_time, this_pulse, clocks)
+        if last_time != 0.0:
+            print("Found {} clock pulse?".format(clocks))
         newclock = self.stream.buffer[self.buffer_pos] / clocks
         if newclock > self.current_clock * (1.0 - PULSE_CLOCK_TOLERANCE) and \
            newclock < self.current_clock * (1.0 + PULSE_CLOCK_TOLERANCE):
@@ -170,12 +172,12 @@ class ClockInfo:
                     outBuffer.append(1)
                     outBuffer.append(0)
                 else:
-                    print("WARNING: 4 clock pulse where uninterpretable? Maybe assume a pair of 2 clock pulses? {} @ {:X}({:X})".format(inBuffer[count], self.buffer_pos, count))
+                    print("WARNING: 4 clock pulse where uninterpretable? Maybe assume a pair of 2 clock pulses? {} @ {}({})".format(inBuffer[count], self.buffer_pos, count))
                     outBuffer.append(0)
                     outBuffer.append(0)
                 pos += 2
             else:
-                print("WARNING: Overly long pulse? {} > {} @ {:X}".format(inBuffer[count], self.current_clock * 4.0, self.buffer_pos))
+                print("WARNING: Overly long pulse? {} > {} @ {}".format(inBuffer[count], self.current_clock * 4.0, self.buffer_pos))
                 if inBuffer[count] % 2 == 1:
                     self.midCycle = not self.midCycle
             count += 1
