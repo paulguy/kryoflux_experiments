@@ -495,14 +495,14 @@ def print_buffer(buffer):
 
 def print_buffers_compare(buffer1, buffer2):
     for i, (val1, val2) in enumerate(zip(buffer1, buffer2)):
-        if i % 64 == 0:
+        if i % 32 == 0:
             print("\n{:04X}".format(i), end='')
         if i % 8 == 0:
-            print(end=' ')
+            print(end='  ')
         if val1 == val2:
-            print('.', end='')
+            print(' .', end='')
         else:
-            print(abs(val1 - val2), end='')
+            print("{: 2X}".format(val1 - val2), end='')
     print()
 
 infile = StreamFile(sys.argv[1])
@@ -512,13 +512,13 @@ print(infile.histogramInfo.ranges)
 print(infile.histogramInfo.peak_threshold)
 print(infile.indexes)
 #print_histogram(infile.histogramInfo.histogram)
-infile.clockInfo.goto_index(2)
-buffer = infile.clockInfo.interpret_pulses(-1, until_index=True)
-infile.clockInfo.goto_index(3)
-buffer2 = infile.clockInfo.interpret_pulses(-1, until_index=True)
+infile.clockInfo.goto_index(0)
+buffer = infile.clockInfo.interpret_pulses(-1, reverse=False, until_index=True)
+infile.clockInfo.goto_index(1)
+buffer2 = infile.clockInfo.interpret_pulses(-1, reverse=False, until_index=True)
 print(len(buffer))
 print(len(buffer2))
-#print_buffers_compare(buffer, buffer2)
+print_buffers_compare(buffer[:3000], buffer2[:3000])
 #buffer = infile.clockInfo.interpret_mfm(buffer)
 #print_buffer(buffer)
 histogramInfo, clockInfo = infile.build_histogram(infile.indexes[0].pos, infile.indexes[1].pos - infile.indexes[0].pos)
